@@ -121,6 +121,7 @@
   (use-package meow
     :config
     (meow-setup)
+    (add-to-list 'meow-mode-state-list '(eat-mode . insert))
     (meow-global-mode 1))
 #+end_src
 * User Interface
@@ -224,6 +225,7 @@
               (if (eglot-managed-p)
                   (add-hook 'before-save-hook #'eglot-format-buffer nil t)
                 (remove-hook 'before-save-hook #'eglot-format-buffer))))
+  (add-hook 'before-save-hook #'whitespace-cleanup)
 
   ;; nice git UI
   (use-package magit)
@@ -309,16 +311,17 @@
 #+end_src
 ** Rust
 #+begin_src emacs-lisp
-  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
   (require 'eglot)
   (add-to-list 'eglot-server-programs
                '(rust-ts-mode
                  .
                  ("rust-analyzer" :initializationOptions
-                  ( :files (:excludeDirs [".flatpak-builder" "build"])
-                    :check (:command "clippy")))))
+                  ( :files (:excludeDirs [".flatpak-builder" "build" "_build"])
+                    :check (:command "clippy")
+                    :imports (:granularity (:group "module"))))))
   (add-hook 'rust-ts-mode-hook #'eglot-ensure)
-#+end_src
+  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+    #+end_src
 ** Javascript
 #+begin_src emacs-lisp
   (add-to-list 'auto-mode-alist '("\\.js\\'" . js-ts-mode))
