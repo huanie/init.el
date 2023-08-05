@@ -240,51 +240,7 @@
     (company-idle-delay 0.1))
 #+end_src
 ** Terminals
-#+begin_src emacs-lisp
-  (use-package eat
-    :hook
-    (eshell-load . eat-eshell-mode)
-    (load-hook . eat-eshell-visual-command-mode)
-    :custom
-    (eat-kill-buffer-on-exit t))
 
-  (defun huan-new-eat (term-buffer-name &optional arg)
-    "Create a new eat terminal with TERM-BUFFER-NAME as buffer name.
-  When called with numeric prefix argument ARG the number will be added
-  to the name.
-
-  If an eat terminal with that `buffer-name' already exists switch to it."
-    (interactive "sEnter buffer name: ")
-    (let ((eat-buffer-name
-           (if current-prefix-arg
-               (concat term-buffer-name
-                       "<" (number-to-string current-prefix-arg) ">")
-             term-buffer-name)))
-      (eat)))
-
-  (defun huan-project-eat (&optional arg)
-    "Create an eat terminal with the project base folder as buffer name.
-  If the terminal already exists switch to it.  Calling with numeric
-  prefix argument ARG will append the number to the buffer name or visit
-  the corresponding buffer.
-
-  The function will do nothing if you are not in a project directory."
-    (interactive "P")
-    (when (project-current)
-      (let* ((project-root-name  (project-root (project-current)))
-             (root-name-length (length project-root-name))
-             (project-name
-              (file-name-nondirectory
-               (substring project-root-name
-                          0 (- root-name-length 1))))
-             (eat-buffer-name
-              (if arg
-                  (concat project-name "<" (number-to-string arg) ">")
-                project-name)))
-        (eat))))
-
-  (global-set-key (kbd "C-x p s") #'huan-project-eat)
-#+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
