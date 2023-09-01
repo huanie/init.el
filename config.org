@@ -4,13 +4,13 @@
 
 * Custom functions
 #+begin_src emacs-lisp
-  (add-to-list 'load-path (concat user-emacs-directory "lisp"))
+  (add-to-list 'load-path (locate-user-emacs-file "lisp"))
   (require 'huan-doxygen)
   (require 'huan-xdg-open)
   (defun visit-config ()
     "Visit this file."
     (interactive)
-    (find-file (concat user-emacs-directory "config.org")))
+    (find-file (locate-user-emacs-file "config.org")))
 #+end_src
 * Editing
 #+begin_src emacs-lisp
@@ -22,10 +22,7 @@
   (column-number-mode 1)
   (setq tab-always-indent 'complete)
 
-  (use-package yasnippet
-    :config
-    (yas-global-mode 1))
-  (use-package yasnippet-snippets)
+  (use-package tempel)
 #+end_src
 ** Meow
 #+begin_src emacs-lisp
@@ -121,24 +118,25 @@
   (use-package meow
     :config
     (meow-setup)
-    (add-to-list 'meow-mode-state-list '(eat-mode . insert))
+    (setq meow-mode-state-list
+          (cons '(text-mode . insert)
+                (cons '(vterm-mode . insert) meow-mode-state-list)))
     (meow-global-mode 1))
 #+end_src
 * User Interface
 ** Unclutter
 #+begin_src emacs-lisp
-  (tool-bar-mode -1)
-  (setq inhibit-startup-screen t)
+  (setq use-short-answers t)
+  (setq native-comp-async-report-warnings-errors 'silent) ; Emacs 28 with native compilation
+  (setq native-compile-prune-cache t) ; Emacs 29
 #+end_src
 ** Visual Indicators
 #+begin_src emacs-lisp
   (setq visible-bell t)
-  (fido-vertical-mode 1)
-  (setq completions-detailed t)
 
   ;; show number of occurences
   (setq isearch-lazy-count t)
-  (setq show-paren-style 'expression)
+  (setq show-paren-style 'parenthesis)
   (add-hook 'text-mode-hook #'flyspell-mode)
 
   ;; the best editor theme
@@ -147,18 +145,189 @@
   (use-package which-key
     :config
     (which-key-mode 1))
-
-  (use-package doom-modeline
+#+end_src
+** Modeline
+#+begin_src emacs-lisp
+  (use-package nano-modeline
+    :custom
+    (nano-modeline-position #'nano-modeline-footer)
     :config
-    (setq doom-modeline-hud t
-          doom-modeline-icon nil)
-    (doom-modeline-mode 1))
+    (nano-modeline-text-mode t)
+    (add-hook 'prog-mode-hook #'nano-modeline-prog-mode)
+    (add-hook 'org-mode-hook #'nano-modeline-org-mode)
+    (add-hook 'messages-buffer-mode-hook #'nano-modeline-messages-mode)
+    (add-hook 'text-mode-hook #'nano-modeline-text-mode)
+    (add-hook 'eat-mode-hook #'nano-modeline-eat-mode))
 #+end_src
 ** Buffers and Windows
 #+begin_src emacs-lisp
   (tab-bar-mode 1)
   (global-set-key (kbd "C-x C-b") 'ibuffer)
   (winner-mode 1)
+#+end_src
+** Minibuffer completion
+#+begin_src emacs-lisp
+  (setq completion-styles '(basic substring initials flex))
+  (setq completions-detailed t)
+  (setq completion-category-overrides
+        '((file (styles . (basic partial-completion)))
+            (bookmark (styles . (basic substring)))
+            (library (styles . (basic substring)))
+            (imenu (styles . (basic substring)))
+            (kill-ring (styles . (emacs22)))
+            (eglot (styles . (emacs22 substring)))))
+
+  (use-package marginalia
+    :init
+    (marginalia-mode))
+
+  (use-package vertico
+    :custom
+    (vertico-cycle t)
+    :init
+    (vertico-mode)
+    (vertico-mouse-mode))
+
+  ;; Configure directory extension.
+  (use-package vertico-directory
+    :ensure nil
+    :after vertico
+    ;; More convenient directory navigation commands
+    :bind (:map vertico-map
+                ("RET" . vertico-directory-enter)
+                ("DEL" . vertico-directory-delete-char)
+                ("M-DEL" . vertico-directory-delete-word))
+    ;; Tidy shadowed file names
+    :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+#+end_src
+*** Save minibuffer history
+#+begin_src emacs-lisp
+  (setq savehist-file (locate-user-emacs-file "savehist"))
+  (setq history-length 500)
+  (setq history-delete-duplicates t)
+  (setq savehist-save-minibuffer-history t)
+  (savehist-mode 1)
+#+end_src
+*** Consult
+#+begin_src emacs-lisp
+  (use-package consult
+    ;; Replace bindings. Lazily loaded due by `use-package'.
+    :bind (;; C-c bindings in `mode-specific-map'
+           ("C-c M-x" . consult-mode-command)
+           ("C-c h" . consult-history)
+           ("C-c k" . consult-kmacro)
+           ("C-c m" . consult-man)
+           ("C-c i" . consult-info)
+           ([remap Info-search] . consult-info)
+           ;; C-x bindings in `ctl-x-map'
+           ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+           ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+           ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+           ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+           ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+           ;; Custom M-# bindings for fast register access
+           ("M-#" . consult-register-load)
+           ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+           ("C-M-#" . consult-register)
+           ;; Other custom bindings
+           ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+           ;; M-g bindings in `goto-map'
+           ("M-g e" . consult-compile-error)
+           ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+           ("M-g g" . consult-goto-line)             ;; orig. goto-line
+           ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+           ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+           ("M-g m" . consult-mark)
+           ("M-g k" . consult-global-mark)
+           ("M-g i" . consult-imenu)
+           ("M-g I" . consult-imenu-multi)
+           ;; M-s bindings in `search-map'
+           ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+           ("M-s D" . consult-locate)
+           ("M-s g" . consult-grep)
+           ("M-s G" . consult-git-grep)
+           ("M-s r" . consult-ripgrep)
+           ("M-s l" . consult-line)
+           ("M-s L" . consult-line-multi)
+           ("M-s k" . consult-keep-lines)
+           ("M-s u" . consult-focus-lines)
+           ;; Isearch integration
+           ("M-s e" . consult-isearch-history)
+           :map isearch-mode-map
+           ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+           ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+           ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+           ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+           ;; Minibuffer history
+           :map minibuffer-local-map
+           ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+           ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+    ;; Enable automatic preview at point in the *Completions* buffer. This is
+    ;; relevant when you use the default completion UI.
+    :hook (completion-list-mode . consult-preview-at-point-mode)
+
+    ;; The :init configuration is always executed (Not lazy)
+    :init
+
+    ;; Optionally configure the register formatting. This improves the register
+    ;; preview for `consult-register', `consult-register-load',
+    ;; `consult-register-store' and the Emacs built-ins.
+    (setq register-preview-delay 0.5
+          register-preview-function #'consult-register-format)
+
+    ;; Optionally tweak the register preview window.
+    ;; This adds thin lines, sorting and hides the mode line of the window.
+    (advice-add #'register-preview :override #'consult-register-window)
+
+    ;; Use Consult to select xref locations with preview
+    (setq xref-show-xrefs-function #'consult-xref
+          xref-show-definitions-function #'consult-xref)
+
+    ;; Configure other variables and modes in the :config section,
+    ;; after lazily loading the package.
+    :config
+
+    ;; Optionally configure preview. The default value
+    ;; is 'any, such that any key triggers the preview.
+    ;; (setq consult-preview-key 'any)
+    ;; (setq consult-preview-key "M-.")
+    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
+    ;; For some commands and buffer sources it is useful to configure the
+    ;; :preview-key on a per-command basis using the `consult-customize' macro.
+    (consult-customize
+     consult-theme :preview-key '(:debounce 0.2 any)
+     consult-ripgrep consult-git-grep consult-grep
+     consult-bookmark consult-recent-file consult-xref
+     consult--source-bookmark consult--source-file-register
+     consult--source-recent-file consult--source-project-recent-file
+     ;; :preview-key "M-."
+     :preview-key '(:debounce 0.4 any))
+
+    ;; Optionally configure the narrowing key.
+    ;; Both < and C-+ work reasonably well.
+    (setq consult-narrow-key "<") ;; "C-+"
+
+    ;; Optionally make narrowing help available in the minibuffer.
+    ;; You may want to use `embark-prefix-help-command' or which-key instead.
+    ;; (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help)
+
+    ;; By default `consult-project-function' uses `project-root' from project.el.
+    ;; Optionally configure a different project root function.
+    ;;;; 1. project.el (the default)
+    ;; (setq consult-project-function #'consult--default-project--function)
+    ;;;; 2. vc.el (vc-root-dir)
+    ;; (setq consult-project-function (lambda (_) (vc-root-dir)))
+    ;;;; 3. locate-dominating-file
+    ;; (setq consult-project-function (lambda (_) (locate-dominating-file "." ".git")))
+    ;;;; 4. projectile.el (projectile-project-root)
+    ;; (autoload 'projectile-project-root "projectile")
+    ;; (setq consult-project-function (lambda (_) (projectile-project-root)))
+    ;;;; 5. No project support
+    ;; (setq consult-project-function nil)
+  )
+
 #+end_src
 * Writing documents
 ** Org
@@ -181,7 +350,7 @@
 #+end_src
 * Files
 #+begin_src emacs-lisp
-  (setq backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
+  (setq backup-directory-alist `(("." . ,(locate-user-emacs-file "backups")))
         delete-old-versions t
         version-control t)
   (setq create-lockfiles nil)
@@ -191,6 +360,9 @@
 
   (setq dired-listing-switches "-aBhl --group-directories-first")
   (global-auto-revert-mode 1)
+
+  ;; trust dir-locals.el
+  (advice-add 'risky-local-variable-p :override #'ignore)
 #+end_src
 ** Open Files/Directories in external programs
 #+begin_src emacs-lisp
@@ -231,16 +403,41 @@
   (use-package magit)
 
   ;; shiny completion box
-  (use-package company
-    :functions global-company-mode
-    :config
-    (global-company-mode)
+  (use-package corfu
     :custom
-    (company-minimum-prefix-length 2)
-    (company-idle-delay 0.1))
+    (corfu-cycle t)
+    (corfu-auto t)
+    (corfu-preselect 'prompt)
+    :bind
+    (:map corfu-map
+          ("TAB" . corfu-next)
+          ([tab] . corfu-next)
+          ("S-TAB" . corfu-previous)
+          ([backtab] . corfu-previous))
+    :init
+    (global-corfu-mode))
+
+  (use-package cape
+    :after corfu
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
+
+  (use-package svg-lib)
+  (use-package kind-icon
+    :after corfu
+    :custom
+    (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+    :config
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
 #+end_src
 ** Terminals
-
+#+begin_src emacs-lisp
+  (use-package eat)
+#+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
@@ -263,7 +460,10 @@
           (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
           (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
           (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
-          (zig . ("https://github.com/GrayJack/tree-sitter-zig"))))
+
+          (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
+          (blueprint . ("file:///home/huantn/Projects/tree-sitter-blueprint"))
+          (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))))
 #+end_src
 ** Rust
 #+begin_src emacs-lisp
@@ -272,7 +472,7 @@
                '(rust-ts-mode
                  .
                  ("rust-analyzer" :initializationOptions
-                  ( :files (:excludeDirs [".flatpak-builder" "build" "_build"])
+                  ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
                     :check (:command "clippy")
                     :imports (:granularity (:group "module"))))))
   (add-hook 'rust-ts-mode-hook #'eglot-ensure)
@@ -295,4 +495,21 @@
 #+begin_src emacs-lisp
     (add-to-list 'eglot-server-programs
                  '(c++-mode . ("clangd" "--clang-tidy")))
+#+end_src
+** Scala
+#+begin_src emacs-lisp
+  (use-package scala-mode
+    :interpreter
+    ("scala" . scala-mode))
+
+  (add-to-list 'eglot-server-programs
+               `(scala-mode . (,(expand-file-name "./metals"))))
+
+#+end_src
+** GNOME
+#+begin_src emacs-lisp
+  (require 'blueprint-ts-mode)
+  (add-to-list 'eglot-server-programs
+                 '(blueprint-ts-mode . ("blueprint-compiler" "lsp")))
+
 #+end_src
