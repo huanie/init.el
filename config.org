@@ -21,8 +21,6 @@
   (delete-selection-mode 1)
   (column-number-mode 1)
   (setq tab-always-indent 'complete)
-
-  (use-package tempel)
 #+end_src
 ** Meow
 #+begin_src emacs-lisp
@@ -126,7 +124,6 @@
 * User Interface
 ** Unclutter
 #+begin_src emacs-lisp
-  (setq use-short-answers t)
   (setq native-comp-async-report-warnings-errors 'silent) ; Emacs 28 with native compilation
   (setq native-compile-prune-cache t) ; Emacs 29
 #+end_src
@@ -148,6 +145,7 @@
 #+end_src
 ** Modeline
 #+begin_src emacs-lisp
+  (setq-default mode-line-format nil)
   (use-package nano-modeline
     :custom
     (nano-modeline-position #'nano-modeline-footer)
@@ -168,6 +166,9 @@
 ** Minibuffer completion
 #+begin_src emacs-lisp
   (setq completion-styles '(basic substring initials flex))
+  (setq read-file-name-completion-ignore-case t
+        read-buffer-completion-ignore-case t
+        completion-ignore-case t)
   (setq completions-detailed t)
   (setq completion-category-overrides
         '((file (styles . (basic partial-completion)))
@@ -185,8 +186,7 @@
     :custom
     (vertico-cycle t)
     :init
-    (vertico-mode)
-    (vertico-mouse-mode))
+    (vertico-mode))
 
   ;; Configure directory extension.
   (use-package vertico-directory
@@ -359,6 +359,8 @@
   (setq auto-save-default nil)
 
   (setq dired-listing-switches "-aBhl --group-directories-first")
+  (setq dired-kill-when-opening-new-dired-buffer t)
+  (setq dired-dwim-target t)
   (global-auto-revert-mode 1)
 
   ;; trust dir-locals.el
@@ -446,6 +448,7 @@
           (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
           (css . ("https://github.com/tree-sitter/tree-sitter-css"))
           (go . ("https://github.com/tree-sitter/tree-sitter-go"))
+          (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
           (html . ("https://github.com/tree-sitter/tree-sitter-html"))
           (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
           (json . ("https://github.com/tree-sitter/tree-sitter-json"))
@@ -503,7 +506,7 @@
     ("scala" . scala-mode))
 
   (add-to-list 'eglot-server-programs
-               `(scala-mode . (,(expand-file-name "./metals"))))
+               `(scala-mode . (,(locate-user-emacs-file "./metals"))))
 
 #+end_src
 ** GNOME
