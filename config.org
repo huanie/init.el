@@ -45,20 +45,6 @@
     :config
     (which-key-mode 1))
 #+end_src
-** Modeline
-#+begin_src emacs-lisp
-  (setq-default mode-line-format nil)
-  (use-package nano-modeline
-    :custom
-    (nano-modeline-position #'nano-modeline-footer)
-    :config
-    (nano-modeline-text-mode t)
-    (add-hook 'prog-mode-hook #'nano-modeline-prog-mode)
-    (add-hook 'org-mode-hook #'nano-modeline-org-mode)
-    (add-hook 'messages-buffer-mode-hook #'nano-modeline-messages-mode)
-    (add-hook 'text-mode-hook #'nano-modeline-text-mode)
-    (add-hook 'eat-mode-hook #'nano-modeline-eat-mode))
-#+end_src
 ** Buffers and Windows
 #+begin_src emacs-lisp
   (tab-bar-mode 1)
@@ -250,8 +236,15 @@
 #+begin_src emacs-lisp
   (use-package markdown-mode)
 #+end_src
+** Typst
+#+begin_src emacs-lisp
+  (use-package typst-ts-mode
+    :vc ( :url "https://git.sr.ht/~meow_king/typst-ts-mode"
+          :rev :newest))
+#+end_src
 * Files
 #+begin_src emacs-lisp
+  (recentf-mode 1)
   (setq backup-directory-alist `(("." . ,(locate-user-emacs-file "backups")))
         delete-old-versions t
         version-control t)
@@ -294,11 +287,6 @@
   (add-hook 'prog-mode-hook #'flyspell-prog-mode)
   (add-hook 'prog-mode-hook #'flymake-mode)
 
-  (add-hook 'eglot-managed-mode-hook
-            (lambda ()
-              (if (eglot-managed-p)
-                  (add-hook 'before-save-hook #'eglot-format-buffer nil t)
-                (remove-hook 'before-save-hook #'eglot-format-buffer))))
   ;; nice git UI
   (use-package magit)
 
@@ -365,7 +353,8 @@
           (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
           (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
           (blueprint . ("file:///home/huantn/Projects/tree-sitter-blueprint/"))
-          (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))))
+          (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
+          (typst . ("https://github.com/uben0/tree-sitter-typst"))))
 #+end_src
 ** Rust
 #+begin_src emacs-lisp
@@ -412,4 +401,9 @@
 #+begin_src emacs-lisp
   (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
   (require 'blueprint-ts-mode)
+#+end_src
+** Java
+#+begin_src emacs-lisp
+    (add-to-list 'eglot-server-programs
+                 `(java-mode . (,(locate-user-emacs-file "./jdtls/bin/jdtls"))))
 #+end_src
