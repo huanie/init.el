@@ -32,7 +32,7 @@
 ** Visual Indicators
 #+begin_src emacs-lisp
   (setq visible-bell t)
-  (
+  
   ;; show number of occurences
   (setq isearch-lazy-count t)
   (setq show-paren-style 'parenthesis)
@@ -370,7 +370,6 @@
                   ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
                     :check (:command "clippy")
                     :imports (:granularity (:group "module"))))))
-  (add-hook 'rust-ts-mode-hook #'eglot-ensure)
   (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
     #+end_src
 ** Javascript
