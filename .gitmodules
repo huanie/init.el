@@ -1,0 +1,3 @@
+[submodule "blueprint-ts-mode"]
+	path = lisp/blueprint-ts-mode
+	url = https://github.com/huanie/blueprint-ts-mode
