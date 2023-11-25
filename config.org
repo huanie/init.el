@@ -14,7 +14,6 @@
 #+end_src
 * Editing
 #+begin_src emacs-lisp
-  (set-language-environment "UTF-8")
   (electric-pair-mode 1)
   (global-visual-line-mode 1)
   (global-subword-mode 1)
@@ -36,7 +35,6 @@
   ;; show number of occurences
   (setq isearch-lazy-count t)
   (setq show-paren-style 'parenthesis)
-  (add-hook 'text-mode-hook #'flyspell-mode)
 
   ;; the best editor theme
   (load-theme 'modus-operandi)
@@ -59,16 +57,16 @@
 #+begin_src emacs-lisp
   (setq completion-styles '(basic substring initials flex))
   (setq read-file-name-completion-ignore-case t
-        read-buffer-completion-ignore-case t
-        completion-ignore-case t)
+	read-buffer-completion-ignore-case t
+	completion-ignore-case t)
   (setq completions-detailed t)
   (setq completion-category-overrides
-        '((file (styles . (basic partial-completion)))
-            (bookmark (styles . (basic substring)))
-            (library (styles . (basic substring)))
-            (imenu (styles . (basic substring)))
-            (kill-ring (styles . (emacs22)))
-            (eglot (styles . (emacs22 substring)))))
+	'((file (styles . (basic partial-completion)))
+	    (bookmark (styles . (basic substring)))
+	    (library (styles . (basic substring)))
+	    (imenu (styles . (basic substring)))
+	    (kill-ring (styles . (emacs22)))
+	    (eglot (styles . (emacs22 substring)))))
 
   (use-package marginalia
     :init
@@ -84,11 +82,12 @@
   (use-package vertico-directory
     :ensure nil
     :after vertico
+    :elpaca nil
     ;; More convenient directory navigation commands
     :bind (:map vertico-map
-                ("RET" . vertico-directory-enter)
-                ("DEL" . vertico-directory-delete-char)
-                ("M-DEL" . vertico-directory-delete-word))
+		("RET" . vertico-directory-enter)
+		("DEL" . vertico-directory-delete-char)
+		("M-DEL" . vertico-directory-delete-word))
     ;; Tidy shadowed file names
     :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 #+end_src
@@ -231,11 +230,6 @@
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (use-package htmlize)
 #+end_src
-** Latex
-#+begin_src emacs-lisp
-  (use-package tex
-    :ensure auctex)
-#+end_src
 ** Markdown
 #+begin_src emacs-lisp
   (use-package markdown-mode)
@@ -243,8 +237,9 @@
 ** Typst
 #+begin_src emacs-lisp
   (use-package typst-ts-mode
-    :vc ( :url "https://git.sr.ht/~meow_king/typst-ts-mode"
-          :rev :newest))
+    :elpaca (:type git :host sourcehut :repo "meow_king/typst-ts-mode")
+    :custom
+    (typst-ts-mode-watch-options "--open"))
 #+end_src
 * Files
 #+begin_src emacs-lisp
@@ -254,6 +249,9 @@
         version-control t)
   (setq create-lockfiles nil)
   (setq auto-save-default nil)
+
+  (when (eq system-type 'darwin)
+    (setq insert-directory-program "gls" dired-use-ls-dired t))
 
   (setq dired-listing-switches "-aBhl --group-directories-first")
   (setq dired-kill-when-opening-new-dired-buffer t)
@@ -288,7 +286,6 @@
   (setq display-line-numbers-width-start t)
 
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
-  (add-hook 'prog-mode-hook #'flyspell-prog-mode)
   (add-hook 'prog-mode-hook #'flymake-mode)
 
   ;; nice git UI

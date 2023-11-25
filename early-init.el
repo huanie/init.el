@@ -42,6 +42,6 @@
 	  (lambda ()
 	    (setq gc-cons-threshold normal-gc-cons-threshold)))
 
-(setq package-enable-at-startup t)
+(setq package-enable-at-startup nil)
 
 ;;; early-init.el ends here
