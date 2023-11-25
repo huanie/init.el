@@ -51,7 +51,7 @@
 ;; Block until current queue processed.
 (elpaca-wait)
 
-
+(require 'org)
 (require 'use-package)
 
 (setq elisp-flymake-byte-compile-load-path user-emacs-directory)
