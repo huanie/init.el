@@ -31,7 +31,7 @@
 ** Visual Indicators
 #+begin_src emacs-lisp
   (setq visible-bell t)
-  
+
   ;; show number of occurences
   (setq isearch-lazy-count t)
   (setq show-paren-style 'parenthesis)
@@ -46,6 +46,10 @@
   (use-package telephone-line
     :config
     (telephone-line-mode 1))
+
+  (use-package jinx
+    :config
+    (global-jinx-mode))
 #+end_src
 ** Buffers and Windows
 #+begin_src emacs-lisp
