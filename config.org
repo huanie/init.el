@@ -1,9 +1,9 @@
 # -*- eval: (huan-config-mode) -*-
 #+TITLE: lol
-#+PROPERTY: header-args:emacs-lisp :tangle ./init-tangled.el
-
+#+PROPERTY: header-args:emacs-lisp :tangle ./init-tangled.el :lexical t
 * Custom functions
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :comments no
+  ;; -*- lexical-binding: t -*-
   (add-to-list 'load-path (locate-user-emacs-file "lisp"))
   (require 'huan-doxygen)
   (require 'huan-xdg-open)
@@ -13,7 +13,7 @@
     (find-file (locate-user-emacs-file "config.org")))
 #+end_src
 * Editing
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :lexical t
   (electric-pair-mode 1)
   (global-visual-line-mode 1)
   (global-subword-mode 1)
@@ -21,6 +21,8 @@
   (column-number-mode 1)
   (setq tab-always-indent 'complete)
   (require 'huan-case-converter)
+  
+  (use-package vundo)
 #+end_src
 * User Interface
 ** Unclutter
@@ -61,16 +63,16 @@
 #+begin_src emacs-lisp
   (setq completion-styles '(basic substring initials flex))
   (setq read-file-name-completion-ignore-case t
-	read-buffer-completion-ignore-case t
-	completion-ignore-case t)
+        read-buffer-completion-ignore-case t
+        completion-ignore-case t)
   (setq completions-detailed t)
   (setq completion-category-overrides
-	'((file (styles . (basic partial-completion)))
-	    (bookmark (styles . (basic substring)))
-	    (library (styles . (basic substring)))
-	    (imenu (styles . (basic substring)))
-	    (kill-ring (styles . (emacs22)))
-	    (eglot (styles . (emacs22 substring)))))
+        '((file (styles . (basic partial-completion)))
+            (bookmark (styles . (basic substring)))
+            (library (styles . (basic substring)))
+            (imenu (styles . (basic substring)))
+            (kill-ring (styles . (emacs22)))
+            (eglot (styles . (emacs22 substring)))))
 
   (use-package marginalia
     :init
@@ -82,18 +84,43 @@
     :init
     (vertico-mode))
 
+  (elpaca-process-queues)
+
   ;; Configure directory extension.
   (use-package vertico-directory
-    :ensure nil
-    :after vertico
     :elpaca nil
+    :after vertico
+    :ensure nil
     ;; More convenient directory navigation commands
     :bind (:map vertico-map
-		("RET" . vertico-directory-enter)
-		("DEL" . vertico-directory-delete-char)
-		("M-DEL" . vertico-directory-delete-word))
+                ("RET" . vertico-directory-enter)
+                ("DEL" . vertico-directory-delete-char)
+                ("M-DEL" . vertico-directory-delete-word))
     ;; Tidy shadowed file names
     :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+
+  (use-package vertico-mouse
+    :elpaca nil
+    :ensure nil
+    :after vertico
+    :init
+    (vertico-mouse-mode))
+
+  ;; Add prompt indicator to `completing-read-multiple'.
+  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
+  (defun crm-indicator (args)
+    (cons (format "[CRM%s] %s"
+                  (replace-regexp-in-string
+                   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+  ;; Do not allow the cursor in the minibuffer prompt
+  (setq minibuffer-prompt-properties
+        '(read-only t cursor-intangible t face minibuffer-prompt))
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 #+end_src
 *** Save minibuffer history
 #+begin_src emacs-lisp
@@ -223,6 +250,41 @@
     ;; (setq consult-project-function nil)
   )
 
+  (use-package embark
+    :bind
+    (("C-." . embark-act)         ;; pick some comfortable binding
+     ("C-;" . embark-dwim)        ;; good alternative: M-.
+     ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+    :init
+
+    ;; Optionally replace the key help with a completing-read interface
+    (setq prefix-help-command #'embark-prefix-help-command)
+
+    ;; Show the Embark target at point via Eldoc. You may adjust the
+    ;; Eldoc strategy, if you want to see the documentation from
+    ;; multiple providers. Beware that using this can be a little
+    ;; jarring since the message shown in the minibuffer can be more
+    ;; than one line, causing the modeline to move up and down:
+
+    ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+    ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+
+    :config
+
+    ;; Hide the mode line of the Embark live/completions buffers
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none)))))
+
+  (elpaca-process-queues)
+
+  ;; Consult users will also want the embark-consult package.
+  (use-package embark-consult
+    :after embark
+    :hook
+    (embark-collect-mode . consult-preview-at-point-mode))
 #+end_src
 * Writing documents
 ** Org
@@ -234,10 +296,6 @@
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (use-package htmlize)
 #+end_src
-** Markdown
-#+begin_src emacs-lisp
-  (use-package markdown-mode)
-#+end_src
 ** Typst
 #+begin_src emacs-lisp
   (use-package typst-ts-mode
@@ -248,6 +306,7 @@
 * Files
 #+begin_src emacs-lisp
   (recentf-mode 1)
+
   (setq backup-directory-alist `(("." . ,(locate-user-emacs-file "backups")))
         delete-old-versions t
         version-control t)
@@ -279,18 +338,44 @@
     (interactive)
     (huan-open default-directory))
 
-  (defun huan-open-dwim ()
+  (defun huan-open-dwim ()2
     "Open current file or directory in external app."
     (interactive)
     (huan-open (buffer-file-name)))
+#+end_src
+* LSP Bridge
+#+begin_src emacs-lisp
+  (use-package yasnippet)
+  (use-package markdown-mode)
+
+  (elpaca-process-queues)
+
+  (use-package lsp-bridge
+    :elpaca ( :type git
+              :host github
+              :repo "manateelazycat/lsp-bridge"
+              :files (:defaults "*.el" "*.py" "acm" "core" "langserver" "multiserver" "resources")
+              :build (:not compile))
+    :init
+    (global-lsp-bridge-mode)
+    :custom
+    (lsp-bridge-user-langserver-dir (locate-user-emacs-file "lsp-bridge/"))
+    (lsp-bridge-enable-hover-diagnostic t)
+    :map lsp-bridge-mode-map
+    ("M-." . lsp-bridge-find-def)
+    ("M-?" . lsp-bridge-find-references))
 #+end_src
 * Programming
 #+begin_src emacs-lisp
   ;; line number fringe will not change column size
   (setq display-line-numbers-width-start t)
+  (setq display-line-numbers-widen nil)
 
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
   (add-hook 'prog-mode-hook #'flymake-mode)
+
+  (use-package transient)
+  (elpaca-process-queues)
 
   ;; nice git UI
   (use-package magit)
@@ -306,9 +391,9 @@
           ("TAB" . corfu-next)
           ([tab] . corfu-next)
           ("S-TAB" . corfu-previous)
-          ([backtab] . corfu-previous))
-    :init
-    (global-corfu-mode))
+          ([backtab] . corfu-previous)))
+
+  (elpaca-process-queues)
 
   (use-package cape
     :after corfu
@@ -325,7 +410,6 @@
     (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
     :config
     (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
-
 #+end_src
 ** Terminals
 #+begin_src emacs-lisp
@@ -364,14 +448,14 @@
 ** Rust
 #+begin_src emacs-lisp
   (require 'eglot)
+  (use-package rust-mode)
   (add-to-list 'eglot-server-programs
-               '(rust-ts-mode
+               '(rust-mode
                  .
                  ("rust-analyzer" :initializationOptions
                   ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
                     :check (:command "clippy")
                     :imports (:granularity (:group "module"))))))
-  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
     #+end_src
 ** Javascript
 #+begin_src emacs-lisp
@@ -405,9 +489,4 @@
 #+begin_src emacs-lisp
   (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
   (require 'blueprint-ts-mode)
-#+end_src
-** Java
-#+begin_src emacs-lisp
-    (add-to-list 'eglot-server-programs
-                 `(java-mode . (,(locate-user-emacs-file "./jdtls/bin/jdtls"))))
 #+end_src

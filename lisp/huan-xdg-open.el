@@ -4,21 +4,12 @@
 
 ;; Open a file in an external program.  Open a directory in an external file manager.
 ;;; Code:
-(defun huan-open (file-or-dir)
-  "Open current FILE-OR-DIR in external app."
-  (let ((path file-or-dir))
-    (start-process "" nil
-		   "/usr/bin/xdg-open"
-		   (if path path (expand-file-name default-directory)))))
-
-(defun huan-open-directory ()
-  "Open directory in external app."
-  (interactive)
-  (huan-open default-directory))
-
-(defun huan-open-dwim ()
-  "Open current file or directory in external app."
-  (huan-open (buffer-file-name)))
+(defun huan-open (url &optional _ignored)
+  "Pass the specified URL to the \"open\" command.
+open is a desktop utility that calls your preferred web browser.
+The optional argument IGNORED is not used."
+  (interactive (browse-url-interactive-arg "URL: "))
+  (call-process "open" nil 0 nil url))
 
 (provide 'huan-xdg-open)
 

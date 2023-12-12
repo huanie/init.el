@@ -5,3 +5,4 @@
 !lisp/
 !lisp/*
 !config.org
+!lsp-bridge
