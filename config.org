@@ -29,6 +29,8 @@
 #+begin_src emacs-lisp
   (setq native-comp-async-report-warnings-errors 'silent) ; Emacs 28 with native compilation
   (setq native-compile-prune-cache t) ; Emacs 29
+  (when (eq system-type 'darwin)
+    (setq frame-resize-pixelwise t))
 #+end_src
 ** Visual Indicators
 #+begin_src emacs-lisp
@@ -45,9 +47,11 @@
     :config
     (which-key-mode 1))
 
-  (use-package telephone-line
-    :config
-    (telephone-line-mode 1))
+  (use-package doom-modeline
+    :ensure t
+    :init (doom-modeline-mode 1)
+    :custom
+    (doom-modeline-icon nil))
 
   (use-package jinx
     :config
@@ -324,28 +328,11 @@
   ;; trust dir-locals.el
   (advice-add 'risky-local-variable-p :override #'ignore)
 #+end_src
-** Open Files/Directories in external programs
-#+begin_src emacs-lisp
-  (defun huan-open (file-or-dir)
-    "Open current FILE-OR-DIR in external app."
-    (let ((path file-or-dir))
-      (start-process "" nil
-                     "/usr/bin/xdg-open"
-                     (if path path (expand-file-name default-directory)))))
-
-  (defun huan-open-directory ()
-    "Open directory in external app."
-    (interactive)
-    (huan-open default-directory))
-
-  (defun huan-open-dwim ()2
-    "Open current file or directory in external app."
-    (interactive)
-    (huan-open (buffer-file-name)))
-#+end_src
 * LSP Bridge
 #+begin_src emacs-lisp
-  (use-package yasnippet)
+  (use-package yasnippet
+    :config
+    (yas-global-mode 1))
   (use-package markdown-mode)
 
   (elpaca-process-queues)
@@ -355,15 +342,23 @@
               :host github
               :repo "manateelazycat/lsp-bridge"
               :files (:defaults "*.el" "*.py" "acm" "core" "langserver" "multiserver" "resources")
-              :build (:not compile))
-    :init
-    (global-lsp-bridge-mode)
+              :build (:not elpaca--byte-compile))
     :custom
     (lsp-bridge-user-langserver-dir (locate-user-emacs-file "lsp-bridge/"))
-    (lsp-bridge-enable-hover-diagnostic t)
-    :map lsp-bridge-mode-map
-    ("M-." . lsp-bridge-find-def)
-    ("M-?" . lsp-bridge-find-references))
+    (lsp-bridge-find-def-select-in-open-windows t)
+    :bind
+    (:map lsp-bridge-mode-map
+          ("M-." . lsp-bridge-find-def)
+          ("M-?" . lsp-bridge-find-references)))
+
+  (elpaca-process-queues)
+
+  (use-package flymake-bridge
+    :elpaca ( :type git
+              :host github
+              :repo "liuyinz/flymake-bridge")
+    :hook
+    (lsp-bridge-mode . flymake-bridge-setup))
 #+end_src
 * Programming
 #+begin_src emacs-lisp
