@@ -4,6 +4,8 @@
 * Custom functions
 #+begin_src emacs-lisp :comments no
   ;; -*- lexical-binding: t -*-
+  (setq load-prefer-newer t)
+
   (add-to-list 'load-path (locate-user-emacs-file "lisp"))
   (require 'huan-doxygen)
   (require 'huan-xdg-open)
@@ -21,8 +23,18 @@
   (column-number-mode 1)
   (setq tab-always-indent 'complete)
   (require 'huan-case-converter)
-  
+
+  (use-package surround
+    :bind-keymap
+    ("C-'" . surround-keymap))
   (use-package vundo)
+  (use-package expreg
+    :bind
+    (("C-=" . expreg-expand)
+     ("C-+" . expreg-contract)))
+  (use-package editorconfig
+    :config
+    (editorconfig-mode 1))
 #+end_src
 * User Interface
 ** Unclutter
@@ -62,6 +74,13 @@
   (tab-bar-mode 1)
   (global-set-key (kbd "C-x C-b") 'ibuffer)
   (winner-mode 1)
+
+  ;; Reuse the frame when window already exists
+  (setopt
+   display-buffer-alist
+   '((".*"
+      nil
+      (reusable-frames . visible))))
 #+end_src
 ** Minibuffer completion
 #+begin_src emacs-lisp
@@ -296,14 +315,16 @@
   (require 'org)
 
   (add-hook 'org-mode-hook #'org-indent-mode)
-  (add-hook 'org-mode-hook #'org-num-mode)
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (use-package htmlize)
 #+end_src
 ** Typst
 #+begin_src emacs-lisp
   (use-package typst-ts-mode
-    :elpaca (:type git :host sourcehut :repo "meow_king/typst-ts-mode")
+    :elpaca ( :type git
+              :host sourcehut
+              :repo "meow_king/typst-ts-mode"
+              :build (:not elpaca--byte-compile))
     :custom
     (typst-ts-mode-watch-options "--open"))
 #+end_src
@@ -333,6 +354,7 @@
   (use-package yasnippet
     :config
     (yas-global-mode 1))
+  (use-package yasnippet-snippets)
   (use-package markdown-mode)
 
   (elpaca-process-queues)
@@ -346,6 +368,7 @@
     :custom
     (lsp-bridge-user-langserver-dir (locate-user-emacs-file "lsp-bridge/"))
     (lsp-bridge-find-def-select-in-open-windows t)
+    (acm-enable-doc nil)
     :bind
     (:map lsp-bridge-mode-map
           ("M-." . lsp-bridge-find-def)
@@ -386,7 +409,13 @@
           ("TAB" . corfu-next)
           ([tab] . corfu-next)
           ("S-TAB" . corfu-previous)
-          ([backtab] . corfu-previous)))
+          ([backtab] . corfu-previous))
+    :hook
+    (lsp-bridge-mode . (lambda ()
+                         (interactive)
+                         (corfu-mode -1)))
+    :init
+    (global-corfu-mode))
 
   (elpaca-process-queues)
 
@@ -411,6 +440,10 @@
   (use-package eat
     :custom
     (eat-kill-buffer-on-exit t))
+
+  (use-package vterm)
+
+  (use-package multi-vterm)
 #+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
@@ -484,4 +517,12 @@
 #+begin_src emacs-lisp
   (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
   (require 'blueprint-ts-mode)
+#+end_src
+** Emacs Lisp
+#+begin_src emacs-lisp
+  (use-package aggressive-indent
+    :hook
+    (emacs-lisp-mode . aggressive-indent-mode))
+
+  (use-package erefactor)
 #+end_src
