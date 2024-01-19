@@ -5,17 +5,15 @@
 #+begin_src emacs-lisp :comments no
   ;; -*- lexical-binding: t -*-
   (setq load-prefer-newer t)
-
+  
   (add-to-list 'load-path (locate-user-emacs-file "lisp"))
-  (require 'huan-doxygen)
-  (require 'huan-xdg-open)
   (defun visit-config ()
     "Visit this file."
     (interactive)
     (find-file (locate-user-emacs-file "config.org")))
 #+end_src
 * Editing
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp
   (electric-pair-mode 1)
   (global-visual-line-mode 1)
   (global-subword-mode 1)
@@ -43,10 +41,12 @@
   (setq native-compile-prune-cache t) ; Emacs 29
   (when (eq system-type 'darwin)
     (setq frame-resize-pixelwise t))
+  (tool-bar-mode -1)
 #+end_src
 ** Visual Indicators
 #+begin_src emacs-lisp
   (setq visible-bell t)
+  (add-to-list 'initial-frame-alist '(fullscreen . maximized))
 
   ;; show number of occurences
   (setq isearch-lazy-count t)
@@ -68,6 +68,8 @@
   (use-package jinx
     :config
     (global-jinx-mode))
+
+  (use-package pdf-tools)
 #+end_src
 ** Buffers and Windows
 #+begin_src emacs-lisp
@@ -314,7 +316,6 @@
 #+begin_src emacs-lisp
   (require 'org)
 
-  (add-hook 'org-mode-hook #'org-indent-mode)
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (use-package htmlize)
 #+end_src
@@ -338,9 +339,6 @@
   (setq create-lockfiles nil)
   (setq auto-save-default nil)
 
-  (when (eq system-type 'darwin)
-    (setq insert-directory-program "gls" dired-use-ls-dired t))
-
   (setq dired-listing-switches "-aBhl --group-directories-first")
   (setq dired-kill-when-opening-new-dired-buffer t)
   (setq dired-dwim-target t)
@@ -349,39 +347,35 @@
   ;; trust dir-locals.el
   (advice-add 'risky-local-variable-p :override #'ignore)
 #+end_src
-* LSP Bridge
+* LSP
 #+begin_src emacs-lisp
-  (use-package yasnippet
-    :config
-    (yas-global-mode 1))
-  (use-package yasnippet-snippets)
-  (use-package markdown-mode)
+    (use-package yasnippet
+      :config
+      (yas-global-mode 1))
+    (use-package yasnippet-snippets)
+    (use-package markdown-mode)
+
+    (elpaca-process-queues)
+
+    (use-package eglot
+      :elpaca nil
+      :config
+      (add-to-list 'eglot-server-programs
+		   '(rust-ts-mode
+		     .
+		     ("rust-analyzer" :initializationOptions
+		      ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
+			:check (:command "clippy")
+			:imports (:granularity (:group "module"))))))
+      (add-to-list 'eglot-server-programs
+		   '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd")))
+  (setenv "DYLD_FALLBACK_LIBRARY_PATH" "/Library/Developer/CommandLineTools/usr/lib/")
+  (use-package lsp-mode
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+    :commands lsp)
 
   (elpaca-process-queues)
-
-  (use-package lsp-bridge
-    :elpaca ( :type git
-              :host github
-              :repo "manateelazycat/lsp-bridge"
-              :files (:defaults "*.el" "*.py" "acm" "core" "langserver" "multiserver" "resources")
-              :build (:not elpaca--byte-compile))
-    :custom
-    (lsp-bridge-user-langserver-dir (locate-user-emacs-file "lsp-bridge/"))
-    (lsp-bridge-find-def-select-in-open-windows t)
-    (acm-enable-doc nil)
-    :bind
-    (:map lsp-bridge-mode-map
-          ("M-." . lsp-bridge-find-def)
-          ("M-?" . lsp-bridge-find-references)))
-
-  (elpaca-process-queues)
-
-  (use-package flymake-bridge
-    :elpaca ( :type git
-              :host github
-              :repo "liuyinz/flymake-bridge")
-    :hook
-    (lsp-bridge-mode . flymake-bridge-setup))
 #+end_src
 * Programming
 #+begin_src emacs-lisp
@@ -440,55 +434,41 @@
   (use-package eat
     :custom
     (eat-kill-buffer-on-exit t))
-
-  (use-package vterm)
-
-  (use-package multi-vterm)
+#+end_src
+** Rust
+#+begin_src emacs-lisp
+  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
 #+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
-        '((bash . ("https://github.com/tree-sitter/tree-sitter-bash"))
-          (c . ("https://github.com/tree-sitter/tree-sitter-c"))
-          (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
-          (css . ("https://github.com/tree-sitter/tree-sitter-css"))
-          (go . ("https://github.com/tree-sitter/tree-sitter-go"))
-          (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
-          (html . ("https://github.com/tree-sitter/tree-sitter-html"))
-          (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
-          (json . ("https://github.com/tree-sitter/tree-sitter-json"))
-          (lua . ("https://github.com/Azganoth/tree-sitter-lua"))
-          (make . ("https://github.com/alemuller/tree-sitter-make"))
-          (ocaml . ("https://github.com/tree-sitter/tree-sitter-ocaml" "ocaml/src" "ocaml"))
-          (python . ("https://github.com/tree-sitter/tree-sitter-python"))
-          (php . ("https://github.com/tree-sitter/tree-sitter-php"))
-          (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
-          (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
-          (ruby . ("https://github.com/tree-sitter/tree-sitter-ruby"))
-          (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
-          (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
-          (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
-          (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
-          (blueprint . ("file:///home/huantn/Projects/tree-sitter-blueprint/"))
-          (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
-          (typst . ("https://github.com/uben0/tree-sitter-typst"))))
-#+end_src
-** Rust
-#+begin_src emacs-lisp
-  (require 'eglot)
-  (use-package rust-mode)
-  (add-to-list 'eglot-server-programs
-               '(rust-mode
-                 .
-                 ("rust-analyzer" :initializationOptions
-                  ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
-                    :check (:command "clippy")
-                    :imports (:granularity (:group "module"))))))
-    #+end_src
-** Javascript
-#+begin_src emacs-lisp
-  (add-to-list 'auto-mode-alist '("\\.js\\'" . js-ts-mode))
-  (add-to-list 'auto-mode-alist '("\\.ts\\'" . tsx-ts-mode))
+	'((bash . ("https://github.com/tree-sitter/tree-sitter-bash"))
+	  (c . ("https://github.com/tree-sitter/tree-sitter-c"))
+	  (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
+	  (css . ("https://github.com/tree-sitter/tree-sitter-css"))
+	  (go . ("https://github.com/tree-sitter/tree-sitter-go"))
+	  (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
+	  (html . ("https://github.com/tree-sitter/tree-sitter-html"))
+	  (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
+	  (json . ("https://github.com/tree-sitter/tree-sitter-json"))
+	  (lua . ("https://github.com/Azganoth/tree-sitter-lua"))
+	  (make . ("https://github.com/alemuller/tree-sitter-make"))
+	  (ocaml . ("https://github.com/tree-sitter/tree-sitter-ocaml" "ocaml/src" "ocaml"))
+	  (python . ("https://github.com/tree-sitter/tree-sitter-python"))
+	  (php . ("https://github.com/tree-sitter/tree-sitter-php"))
+	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
+	  (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
+	  (ruby . ("https://github.com/tree-sitter/tree-sitter-ruby"))
+	  (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
+	  (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
+	  (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
+	  (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
+	  (blueprint . ("file:///home/huantn/Projects/tree-sitter-blueprint/"))
+	  (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
+	  (typst . ("https://github.com/uben0/tree-sitter-typst"))
+	  (elixir . ("https://github.com/elixir-lang/tree-sitter-elixir"))
+	  (heex . ("https://github.com/phoenixframework/tree-sitter-heex"))
+	  (java . ("https://github.com/tree-sitter/tree-sitter-java"))))
 #+end_src
 ** Racket
 #+begin_src emacs-lisp
@@ -497,26 +477,6 @@
     (racket-program (expand-file-name "~/racket/bin/racket"))
     :hook
     (racket-mode . racket-xp-mode))
-#+end_src
-** Sepples
-#+begin_src emacs-lisp
-    (add-to-list 'eglot-server-programs
-                 '(c++-mode . ("clangd" "--clang-tidy")))
-#+end_src
-** Scala
-#+begin_src emacs-lisp
-  (use-package scala-mode
-    :interpreter
-    ("scala" . scala-mode))
-
-  (add-to-list 'eglot-server-programs
-               `(scala-mode . (,(locate-user-emacs-file "./metals"))))
-
-#+end_src
-** GNOME
-#+begin_src emacs-lisp
-  (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
-  (require 'blueprint-ts-mode)
 #+end_src
 ** Emacs Lisp
 #+begin_src emacs-lisp

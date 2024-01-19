@@ -30,8 +30,6 @@
       inhibit-startup-screen t
       inhibit-startup-buffer-menu t)
 
-(tool-bar-mode -1)
-
 ;; Temporarily increase the garbage collection threshold.  These
 ;; changes help shave off about half a second of startup time.
 (defvar normal-gc-cons-threshold gc-cons-threshold)
