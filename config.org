@@ -321,11 +321,9 @@
 #+end_src
 ** Typst
 #+begin_src emacs-lisp
+  (require 'typst-ts-mode)
   (use-package typst-ts-mode
-    :elpaca ( :type git
-              :host sourcehut
-              :repo "meow_king/typst-ts-mode"
-              :build (:not elpaca--byte-compile))
+    :elpaca nil
     :custom
     (typst-ts-mode-watch-options "--open"))
 #+end_src
