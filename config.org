@@ -5,15 +5,27 @@
 #+begin_src emacs-lisp :comments no
   ;; -*- lexical-binding: t -*-
   (setq load-prefer-newer t)
-  
+
   (add-to-list 'load-path (locate-user-emacs-file "lisp"))
   (defun visit-config ()
     "Visit this file."
     (interactive)
     (find-file (locate-user-emacs-file "config.org")))
+
+  (defun my/eval-buffer ()
+    "Execute the current buffer as Lisp code.
+  Need this because defcustom, defvar etc
+  will not be evaluated with default `eval-buffer'."
+    (interactive)
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+	(forward-sexp)
+	(eval-last-sexp nil))))
 #+end_src
 * Editing
 #+begin_src emacs-lisp
+  (save-place-mode 1)
   (electric-pair-mode 1)
   (global-visual-line-mode 1)
   (global-subword-mode 1)
@@ -35,6 +47,20 @@
     (editorconfig-mode 1))
 #+end_src
 * User Interface
+** Smooth scroll
+#+begin_src emacs-lisp
+  (use-package emacs
+    :ensure nil
+    :bind
+    ([remap scroll-up-command]   . pixel-scroll-interpolate-down)
+    ([remap scroll-down-command] . pixel-scroll-interpolate-up)
+    :custom
+    (pixel-scroll-precision-interpolate-page t)
+    :init
+    ;; scrolling with an ordinary mouse to be almost as smooth as scrolling with a touchpad, on systems other than X:
+    ;; (setq pixel-scroll-precision-large-scroll-height 40.0)
+    (pixel-scroll-precision-mode 1))
+#+end_src
 ** Unclutter
 #+begin_src emacs-lisp
   (setq native-comp-async-report-warnings-errors 'silent) ; Emacs 28 with native compilation
@@ -83,6 +109,9 @@
    '((".*"
       nil
       (reusable-frames . visible))))
+
+  (keymap-global-unset "C-<wheel-up>" t)
+  (keymap-global-unset "C-<wheel-down>" t)
 #+end_src
 ** Minibuffer completion
 #+begin_src emacs-lisp
@@ -113,7 +142,7 @@
 
   ;; Configure directory extension.
   (use-package vertico-directory
-    :elpaca nil
+    :ensure nil
     :after vertico
     :ensure nil
     ;; More convenient directory navigation commands
@@ -125,7 +154,7 @@
     :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
   (use-package vertico-mouse
-    :elpaca nil
+    :ensure nil
     :ensure nil
     :after vertico
     :init
@@ -321,19 +350,19 @@
 #+end_src
 ** Typst
 #+begin_src emacs-lisp
+  (add-to-list 'load-path (locate-user-emacs-file "lisp/typst-ts-mode"))
   (require 'typst-ts-mode)
-  (use-package typst-ts-mode
-    :elpaca nil
-    :custom
-    (typst-ts-mode-watch-options "--open"))
+  (setq typst-ts-watch-options "--open")
 #+end_src
 * Files
 #+begin_src emacs-lisp
   (recentf-mode 1)
 
+  (use-package zoxide)
+
   (setq backup-directory-alist `(("." . ,(locate-user-emacs-file "backups")))
-        delete-old-versions t
-        version-control t)
+	delete-old-versions t
+	version-control t)
   (setq create-lockfiles nil)
   (setq auto-save-default nil)
 
@@ -347,39 +376,54 @@
 #+end_src
 * LSP
 #+begin_src emacs-lisp
-    (use-package yasnippet
-      :config
-      (yas-global-mode 1))
-    (use-package yasnippet-snippets)
-    (use-package markdown-mode)
-
-    (elpaca-process-queues)
-
-    (use-package eglot
-      :elpaca nil
-      :config
-      (add-to-list 'eglot-server-programs
-		   '(rust-ts-mode
-		     .
-		     ("rust-analyzer" :initializationOptions
-		      ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
-			:check (:command "clippy")
-			:imports (:granularity (:group "module"))))))
-      (add-to-list 'eglot-server-programs
-		   '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd")))
-  (setenv "DYLD_FALLBACK_LIBRARY_PATH" "/Library/Developer/CommandLineTools/usr/lib/")
-  (use-package lsp-mode
-    :init
-    (setq lsp-keymap-prefix "C-c l")
-    :commands lsp)
+  (use-package yasnippet
+    :config
+    (yas-global-mode 1))
+  (use-package yasnippet-snippets)
+  (use-package markdown-mode)
 
   (elpaca-process-queues)
+
+  (use-package eglot
+    :ensure nil
+    :config
+    (add-to-list 'eglot-server-programs
+		 '(rust-ts-mode
+		   .
+		   ("rust-analyzer" :initializationOptions
+		    ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
+		      :check (:command "clippy")
+		      :imports (:granularity (:group "module"))))))
+    (add-to-list 'eglot-server-programs
+		 '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd"))
+    ;; https://github.com/Ziqi-Yang/.emacs.d/blob/main/modules/languages/l-general.el
+    (fset #'jsonrpc--log-event #'ignore) ;; remove laggy typing it probably reduces chatty json from lsp to eglot i guess
+    (setq-default eglot-events-buffer-size 0) ;; disable log, improve performance
+    ;; list of things that eglot won't change
+    (customize-set-variable 'eglot-stay-out-of '(imenu))
+    (customize-set-variable 'eglot-extend-to-xref t)
+    (customize-set-variable 'eglot-autoshutdown t) ;; automatically shutdown
+    (add-hook 'eglot-managed-mode-hook
+	      (lambda () (eglot-inlay-hints-mode -1)))
+    (setq-default eglot-send-changes-idle-time 0.25))
+
+  (when (eq system-type 'darwin)
+    (setenv "DYLD_FALLBACK_LIBRARY_PATH" "/Library/Developer/CommandLineTools/usr/lib/"))
+
+  (elpaca-process-queues)
+
+  (use-package eglot-booster
+    :ensure (:host github :repo "jdtsmith/eglot-booster")
+    :after eglot)
 #+end_src
 * Programming
 #+begin_src emacs-lisp
   ;; line number fringe will not change column size
   (setq display-line-numbers-width-start t)
   (setq display-line-numbers-widen nil)
+
+  ;; compilation buffer
+  (setq compilation-scroll-output t)
 
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
   (add-hook 'prog-mode-hook #'flymake-mode)
@@ -398,14 +442,14 @@
     (corfu-preselect 'prompt)
     :bind
     (:map corfu-map
-          ("TAB" . corfu-next)
-          ([tab] . corfu-next)
-          ("S-TAB" . corfu-previous)
-          ([backtab] . corfu-previous))
+	  ("TAB" . corfu-next)
+	  ([tab] . corfu-next)
+	  ("S-TAB" . corfu-previous)
+	  ([backtab] . corfu-previous))
     :hook
     (lsp-bridge-mode . (lambda ()
-                         (interactive)
-                         (corfu-mode -1)))
+			 (interactive)
+			 (corfu-mode -1)))
     :init
     (global-corfu-mode))
 
@@ -436,6 +480,7 @@
 ** Rust
 #+begin_src emacs-lisp
   (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+  (use-package rust-mode)
 #+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
