@@ -435,47 +435,54 @@
   (use-package magit)
 
   ;; shiny completion box
-  (use-package corfu
-    :custom
-    (corfu-cycle t)
-    (corfu-auto t)
-    (corfu-preselect 'prompt)
-    :bind
-    (:map corfu-map
-	  ("TAB" . corfu-next)
-	  ([tab] . corfu-next)
-	  ("S-TAB" . corfu-previous)
-	  ([backtab] . corfu-previous))
-    :hook
-    (lsp-bridge-mode . (lambda ()
-			 (interactive)
-			 (corfu-mode -1)))
-    :init
-    (global-corfu-mode))
+  ;; (use-package corfu
+  ;;   :custom
+  ;;   (corfu-cycle t)
+  ;;   (corfu-auto t)
+  ;;   (corfu-preselect 'prompt)
+  ;;   :bind
+  ;;   (:map corfu-map
+  ;; 	("TAB" . corfu-next)
+  ;; 	([tab] . corfu-next)
+  ;; 	("S-TAB" . corfu-previous)
+  ;; 	([backtab] . corfu-previous))
+  ;;   :hook
+  ;;   (lsp-bridge-mode . (lambda ()
+  ;; 		       (interactive)
+  ;; 		       (corfu-mode -1)))
+  ;;   :init
+  ;;   (global-corfu-mode))
+  ;;
+  ;; (elpaca-process-queues)
+  ;;
+  ;; (use-package cape
+  ;;   :after corfu
+  ;;   :init
+  ;;   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-file)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
 
-  (elpaca-process-queues)
+  ;; (use-package svg-lib)
+  ;; (use-package kind-icon
+  ;;   :after corfu
+  ;;   :custom
+  ;;   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+  ;;   :config
+  ;;   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
-  (use-package cape
-    :after corfu
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
-
-  (use-package svg-lib)
-  (use-package kind-icon
-    :after corfu
-    :custom
-    (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+  (use-package company
     :config
-    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+    (global-company-mode))
+
 #+end_src
 ** Terminals
 #+begin_src emacs-lisp
   (use-package eat
     :custom
     (eat-kill-buffer-on-exit t))
+
+  (use-package tramp-term)
 #+end_src
 ** Rust
 #+begin_src emacs-lisp
@@ -506,7 +513,7 @@
 	  (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
 	  (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
 	  (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
-	  (blueprint . ("file:///home/huantn/Projects/tree-sitter-blueprint/"))
+	  (blueprint . ("https://github.com/huanie/tree-sitter-blueprint"))
 	  (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
 	  (typst . ("https://github.com/uben0/tree-sitter-typst"))
 	  (elixir . ("https://github.com/elixir-lang/tree-sitter-elixir"))
@@ -517,7 +524,7 @@
 #+begin_src emacs-lisp
   (use-package racket-mode
     :custom
-    (racket-program (expand-file-name "~/racket/bin/racket"))
+    (racket-program (expand-file-name "/opt/homebrew/bin/racket"))
     :hook
     (racket-mode . racket-xp-mode))
 #+end_src
@@ -528,4 +535,9 @@
     (emacs-lisp-mode . aggressive-indent-mode))
 
   (use-package erefactor)
+#+end_src
+** Blueprint
+#+begin_src emacs-lisp
+  (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
+  (require 'blueprint-ts-mode)
 #+end_src
