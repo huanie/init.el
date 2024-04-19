@@ -388,12 +388,13 @@
     :ensure nil
     :config
     (add-to-list 'eglot-server-programs
-		 '(rust-ts-mode
+		 '((rust-ts-mode rust-mode)
 		   .
 		   ("rust-analyzer" :initializationOptions
 		    ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
 		      :check (:command "clippy")
-		      :imports (:granularity (:group "module"))))))
+		      :imports (:granularity (:group "module"))
+		      :typing (:autoClosingAngleBrackets (:enable nil))))))
     (add-to-list 'eglot-server-programs
 		 '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd"))
     ;; https://github.com/Ziqi-Yang/.emacs.d/blob/main/modules/languages/l-general.el
@@ -415,6 +416,8 @@
   (use-package eglot-booster
     :ensure (:host github :repo "jdtsmith/eglot-booster")
     :after eglot)
+
+  (use-package lsp-mode)
 #+end_src
 * Programming
 #+begin_src emacs-lisp
@@ -435,46 +438,51 @@
   (use-package magit)
 
   ;; shiny completion box
-  ;; (use-package corfu
-  ;;   :custom
-  ;;   (corfu-cycle t)
-  ;;   (corfu-auto t)
-  ;;   (corfu-preselect 'prompt)
-  ;;   :bind
-  ;;   (:map corfu-map
-  ;; 	("TAB" . corfu-next)
-  ;; 	([tab] . corfu-next)
-  ;; 	("S-TAB" . corfu-previous)
-  ;; 	([backtab] . corfu-previous))
-  ;;   :hook
-  ;;   (lsp-bridge-mode . (lambda ()
-  ;; 		       (interactive)
-  ;; 		       (corfu-mode -1)))
-  ;;   :init
-  ;;   (global-corfu-mode))
-  ;;
-  ;; (elpaca-process-queues)
-  ;;
-  ;; (use-package cape
-  ;;   :after corfu
-  ;;   :init
-  ;;   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  ;;   (add-to-list 'completion-at-point-functions #'cape-file)
-  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
+  (use-package corfu
+    :custom
+    (corfu-cycle t)
+    (corfu-auto t)
+    (corfu-preselect 'prompt)
+    :bind
+    (:map corfu-map
+	  ("TAB" . corfu-next)
+	  ([tab] . corfu-next)
+	  ("S-TAB" . corfu-previous)
+	  ([backtab] . corfu-previous))
+    :hook
+    (lsp-bridge-mode . (lambda ()
+			 (interactive)
+			 (corfu-mode -1)))
+    :init
+    (global-corfu-mode))
 
-  ;; (use-package svg-lib)
-  ;; (use-package kind-icon
-  ;;   :after corfu
-  ;;   :custom
-  ;;   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
-  ;;   :config
-  ;;   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+  (elpaca-process-queues)
 
-  (use-package company
+  (use-package cape
+    :after corfu
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
+
+  (use-package svg-lib)
+  (use-package kind-icon
+    :after corfu
+    :custom
+    (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
     :config
-    (global-company-mode))
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
+  ;; (use-package company
+  ;;   :config
+  ;;   (global-company-mode))
+
+#+end_src
+** Tree Sitter
+#+begin_src emacs-lisp
+  (setq major-mode-remap-alist
+	'((rust-mode  . rust-ts-mode)))
 #+end_src
 ** Terminals
 #+begin_src emacs-lisp
@@ -486,8 +494,8 @@
 #+end_src
 ** Rust
 #+begin_src emacs-lisp
-  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
   (use-package rust-mode)
+  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
 #+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
@@ -536,8 +544,9 @@
 
   (use-package erefactor)
 #+end_src
-** Blueprint
+** Gnome
 #+begin_src emacs-lisp
   (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
   (require 'blueprint-ts-mode)
+  (use-package meson-mode)
 #+end_src
