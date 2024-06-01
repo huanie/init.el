@@ -45,6 +45,8 @@
   (use-package editorconfig
     :config
     (editorconfig-mode 1))
+
+  (setq-default indent-tabs-mode nil)
 #+end_src
 * User Interface
 ** Smooth scroll
@@ -66,8 +68,9 @@
   (setq native-comp-async-report-warnings-errors 'silent) ; Emacs 28 with native compilation
   (setq native-compile-prune-cache t) ; Emacs 29
   (when (eq system-type 'darwin)
-    (setq frame-resize-pixelwise t))
+	(setq frame-resize-pixelwise t))
   (tool-bar-mode -1)
+  (setq-default tab-width 4)
 #+end_src
 ** Visual Indicators
 #+begin_src emacs-lisp
@@ -137,8 +140,6 @@
     (vertico-cycle t)
     :init
     (vertico-mode))
-
-  (elpaca-process-queues)
 
   ;; Configure directory extension.
   (use-package vertico-directory
@@ -332,8 +333,6 @@
                    nil
                    (window-parameters (mode-line-format . none)))))
 
-  (elpaca-process-queues)
-
   ;; Consult users will also want the embark-consult package.
   (use-package embark-consult
     :after embark
@@ -382,21 +381,21 @@
   (use-package yasnippet-snippets)
   (use-package markdown-mode)
 
-  (elpaca-process-queues)
-
   (use-package eglot
     :ensure nil
+    :hook
+    (eglot-managed-mode . eglot-inlay-hints-mode)
     :config
     (add-to-list 'eglot-server-programs
-		 '((rust-ts-mode rust-mode)
-		   .
-		   ("rust-analyzer" :initializationOptions
-		    ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
-		      :check (:command "clippy")
-		      :imports (:granularity (:group "module"))
-		      :typing (:autoClosingAngleBrackets (:enable nil))))))
+                 '((rust-ts-mode rust-mode)
+                   .
+                   ("rust-analyzer" :initializationOptions
+                    ( :files (:excludeDirs [".flatpak-builder" "build" "_build" "builddir" "flatpak_app" "flatpak-app" ".fenv"])
+                      :check (:command "clippy")
+                      :imports (:granularity (:group "module"))
+                      :typing (:autoClosingAngleBrackets (:enable nil))))))
     (add-to-list 'eglot-server-programs
-		 '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd"))
+                 '(c++-mode "/opt/homebrew/opt/llvm/bin/clangd" "--clang-tidy" "--compile-commands-dir=build"))
     ;; https://github.com/Ziqi-Yang/.emacs.d/blob/main/modules/languages/l-general.el
     (fset #'jsonrpc--log-event #'ignore) ;; remove laggy typing it probably reduces chatty json from lsp to eglot i guess
     (setq-default eglot-events-buffer-size 0) ;; disable log, improve performance
@@ -405,19 +404,37 @@
     (customize-set-variable 'eglot-extend-to-xref t)
     (customize-set-variable 'eglot-autoshutdown t) ;; automatically shutdown
     (add-hook 'eglot-managed-mode-hook
-	      (lambda () (eglot-inlay-hints-mode -1)))
+              (lambda () (eglot-inlay-hints-mode -1)))
     (setq-default eglot-send-changes-idle-time 0.25))
 
   (when (eq system-type 'darwin)
     (setenv "DYLD_FALLBACK_LIBRARY_PATH" "/Library/Developer/CommandLineTools/usr/lib/"))
 
-  (elpaca-process-queues)
-
   (use-package eglot-booster
     :ensure (:host github :repo "jdtsmith/eglot-booster")
     :after eglot)
 
-  (use-package lsp-mode)
+  (use-package lsp-mode
+    :config
+    (setq lsp-modeline-diagnostics-mode t)
+    (setq lsp-apply-edits-after-file-operations nil)
+    :hook
+    (jtsx-tsx-mode . lsp-deferred)
+    (typescript-ts-mode . lsp-deferred)
+    :commands (lsp lsp-deferred))
+
+  (use-package lsp-tailwindcss
+    :init
+    (setq lsp-tailwindcss-add-on-mode t)
+    :config
+    (add-to-list 'lsp-tailwindcss-major-modes 'jtsx-tsx-mode))
+
+  (use-package flycheck
+    :hook
+    (lsp-mode . flycheck-mode)
+    :config
+    (add-hook 'flycheck-mode-hook (lambda ()
+                                    (flymake-mode -1))))
 #+end_src
 * Programming
 #+begin_src emacs-lisp
@@ -432,52 +449,53 @@
   (add-hook 'prog-mode-hook #'flymake-mode)
 
   (use-package transient)
-  (elpaca-process-queues)
 
   ;; nice git UI
   (use-package magit)
 
   ;; shiny completion box
-  (use-package corfu
-    :custom
-    (corfu-cycle t)
-    (corfu-auto t)
-    (corfu-preselect 'prompt)
-    :bind
-    (:map corfu-map
-	  ("TAB" . corfu-next)
-	  ([tab] . corfu-next)
-	  ("S-TAB" . corfu-previous)
-	  ([backtab] . corfu-previous))
-    :hook
-    (lsp-bridge-mode . (lambda ()
-			 (interactive)
-			 (corfu-mode -1)))
-    :init
-    (global-corfu-mode))
+  ;; (use-package corfu
+  ;;   :custom
+  ;;   (corfu-cycle t)
+  ;;   (corfu-auto t)
+  ;;   (corfu-preselect 'prompt)
+  ;;   :bind
+  ;;   (:map corfu-map
+  ;; 	    ("TAB" . corfu-next)
+  ;; 	    ([tab] . corfu-next)
+  ;; 	    ("S-TAB" . corfu-previous)
+  ;; 	    ([backtab] . corfu-previous))
+  ;;   :init
+  ;;   (global-corfu-mode))
 
-  (elpaca-process-queues)
+  ;; (use-package cape
+  ;;   :after corfu
+  ;;   :init
+  ;;   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-file)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
 
-  (use-package cape
-    :after corfu
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol))
-
-  (use-package svg-lib)
-  (use-package kind-icon
-    :after corfu
-    :custom
-    (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
-    :config
-    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
-
-  ;; (use-package company
+  ;; (use-package svg-lib)
+  ;; (use-package kind-icon
+  ;;   :after corfu
+  ;;   :custom
+  ;;   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
   ;;   :config
-  ;;   (global-company-mode))
+  ;;   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
+  (use-package company
+    :config
+    (global-company-mode))
+
+#+end_src
+** Comments
+#+begin_src emacs-lisp
+  (use-package separedit
+    :bind (:map prog-mode-map
+		("C-c '" . separedit))
+    :custom
+    (separedit-default-mode 'markdown-mode))
 #+end_src
 ** Tree Sitter
 #+begin_src emacs-lisp
@@ -496,37 +514,41 @@
 #+begin_src emacs-lisp
   (use-package rust-mode)
   (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+  (use-package slint-mode)
 #+end_src
 ** Tree-Sitter
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
-	'((bash . ("https://github.com/tree-sitter/tree-sitter-bash"))
-	  (c . ("https://github.com/tree-sitter/tree-sitter-c"))
-	  (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
-	  (css . ("https://github.com/tree-sitter/tree-sitter-css"))
-	  (go . ("https://github.com/tree-sitter/tree-sitter-go"))
-	  (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
-	  (html . ("https://github.com/tree-sitter/tree-sitter-html"))
-	  (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
-	  (json . ("https://github.com/tree-sitter/tree-sitter-json"))
-	  (lua . ("https://github.com/Azganoth/tree-sitter-lua"))
-	  (make . ("https://github.com/alemuller/tree-sitter-make"))
-	  (ocaml . ("https://github.com/tree-sitter/tree-sitter-ocaml" "ocaml/src" "ocaml"))
-	  (python . ("https://github.com/tree-sitter/tree-sitter-python"))
-	  (php . ("https://github.com/tree-sitter/tree-sitter-php"))
-	  (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
-	  (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
-	  (ruby . ("https://github.com/tree-sitter/tree-sitter-ruby"))
-	  (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
-	  (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
-	  (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
-	  (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
-	  (blueprint . ("https://github.com/huanie/tree-sitter-blueprint"))
-	  (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
-	  (typst . ("https://github.com/uben0/tree-sitter-typst"))
-	  (elixir . ("https://github.com/elixir-lang/tree-sitter-elixir"))
-	  (heex . ("https://github.com/phoenixframework/tree-sitter-heex"))
-	  (java . ("https://github.com/tree-sitter/tree-sitter-java"))))
+        '((bash . ("https://github.com/tree-sitter/tree-sitter-bash"))
+          (c . ("https://github.com/tree-sitter/tree-sitter-c"))
+          (cpp . ("https://github.com/tree-sitter/tree-sitter-cpp"))
+          (css . ("https://github.com/tree-sitter/tree-sitter-css"))
+          (go . ("https://github.com/tree-sitter/tree-sitter-go"))
+          (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
+          (html . ("https://github.com/tree-sitter/tree-sitter-html"))
+          (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
+          (json . ("https://github.com/tree-sitter/tree-sitter-json"))
+          (lua . ("https://github.com/tree-sitter-grammars/tree-sitter-lua"))
+          (make . ("https://github.com/alemuller/tree-sitter-make"))
+          (ocaml . ("https://github.com/tree-sitter/tree-sitter-ocaml" "ocaml/src" "ocaml"))
+          (python . ("https://github.com/tree-sitter/tree-sitter-python"))
+          (php . ("https://github.com/tree-sitter/tree-sitter-php"))
+          (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src"))
+          (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
+          (ruby . ("https://github.com/tree-sitter/tree-sitter-ruby"))
+          (rust . ("https://github.com/tree-sitter/tree-sitter-rust"))
+          (sql . ("https://github.com/m-novikov/tree-sitter-sql"))
+          (toml . ("https://github.com/tree-sitter/tree-sitter-toml"))
+          (zig . ("https://github.com/GrayJack/tree-sitter-zig"))
+          (blueprint . ("https://github.com/huanie/tree-sitter-blueprint"))
+          (scala . ("https://github.com/tree-sitter/tree-sitter-scala"))
+          (typst . ("https://github.com/uben0/tree-sitter-typst"))
+          (elixir . ("https://github.com/elixir-lang/tree-sitter-elixir"))
+          (heex . ("https://github.com/phoenixframework/tree-sitter-heex"))
+          (java . ("https://github.com/tree-sitter/tree-sitter-java"))
+          (qmljs . ("https://github.com/yuja/tree-sitter-qmljs"))))
+
+  (setq treesit-font-lock-level 4)
 #+end_src
 ** Racket
 #+begin_src emacs-lisp
@@ -549,4 +571,72 @@
   (add-to-list 'load-path (locate-user-emacs-file "lisp/blueprint-ts-mode"))
   (require 'blueprint-ts-mode)
   (use-package meson-mode)
+#+end_src
+** Web
+#+begin_src emacs-lisp
+  (use-package apheleia
+    :hook
+    (tsx-ts-mode . apheleia-mode)
+    (css-ts-mode . apheleia-mode)
+    (css-mode . apheleia-mode)
+    (js-json-mode . apheleia-mode)
+    (rust-ts-mode . apheleia-mode)
+    (c++-ts-mode . apheleia-mode))
+
+  (use-package jtsx
+    :ensure t
+    :mode (("\\.jsx?\\'" . jtsx-jsx-mode)
+           ("\\.tsx\\'" . jtsx-tsx-mode)
+           ("\\.ts\\'" . jtsx-typescript-mode))
+    :commands jtsx-install-treesit-language
+    :hook ((jtsx-tsx-mode . apheleia-mode)
+           (jtsx-typescript-mode . apheleia-mode))
+    :custom
+    ;; Optional customizations
+    ;; (js-indent-level 2)
+    (typescript-ts-mode-indent-offset 4)
+    ;; (jtsx-switch-indent-offset 0)
+    ;; (jtsx-indent-statement-block-regarding-standalone-parent nil)
+    ;; (jtsx-jsx-element-move-allow-step-out t)
+    ;; (jtsx-enable-jsx-electric-closing-element t)
+    ;; (jtsx-enable-electric-open-newline-between-jsx-element-tags t)
+    ;; (jtsx-enable-jsx-element-tags-auto-sync nil)
+    (jtsx-enable-all-syntax-highlighting-features t)
+    :config
+    (defun jtsx-bind-keys-to-mode-map (mode-map)
+      "Bind keys to MODE-MAP."
+      (define-key mode-map (kbd "C-c C-j") 'jtsx-jump-jsx-element-tag-dwim)
+      (define-key mode-map (kbd "C-c j o") 'jtsx-jump-jsx-opening-tag)
+      (define-key mode-map (kbd "C-c j c") 'jtsx-jump-jsx-closing-tag)
+      (define-key mode-map (kbd "C-c j r") 'jtsx-rename-jsx-element)
+      (define-key mode-map (kbd "C-c <down>") 'jtsx-move-jsx-element-tag-forward)
+      (define-key mode-map (kbd "C-c <up>") 'jtsx-move-jsx-element-tag-backward)
+      (define-key mode-map (kbd "C-c C-<down>") 'jtsx-move-jsx-element-forward)
+      (define-key mode-map (kbd "C-c C-<up>") 'jtsx-move-jsx-element-backward)
+      (define-key mode-map (kbd "C-c C-S-<down>") 'jtsx-move-jsx-element-step-in-forward)
+      (define-key mode-map (kbd "C-c C-S-<up>") 'jtsx-move-jsx-element-step-in-backward)
+      (define-key mode-map (kbd "C-c j w") 'jtsx-wrap-in-jsx-element)
+      (define-key mode-map (kbd "C-c j u") 'jtsx-unwrap-jsx)
+      (define-key mode-map (kbd "C-c j d") 'jtsx-delete-jsx-node))
+
+    (defun jtsx-bind-keys-to-jtsx-jsx-mode-map ()
+      (jtsx-bind-keys-to-mode-map jtsx-jsx-mode-map))
+
+    (defun jtsx-bind-keys-to-jtsx-tsx-mode-map ()
+      (jtsx-bind-keys-to-mode-map jtsx-tsx-mode-map))
+
+    (add-hook 'jtsx-jsx-mode-hook 'jtsx-bind-keys-to-jtsx-jsx-mode-map)
+    (add-hook 'jtsx-tsx-mode-hook 'jtsx-bind-keys-to-jtsx-tsx-mode-map))
+
+  (use-package web-mode)
+#+end_src
+* Sepples
+#+begin_src emacs-lisp
+  ;; qt
+  (use-package qml-ts-mode
+    :ensure (:host github :repo "https://github.com/xhcoding/qml-ts-mode"))
+
+  (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.mpp\\'" . c++-ts-mode))
+  (add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-ts-mode))
 #+end_src

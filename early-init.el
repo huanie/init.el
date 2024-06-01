@@ -32,13 +32,15 @@
 
 ;; Temporarily increase the garbage collection threshold.  These
 ;; changes help shave off about half a second of startup time.
-(defvar normal-gc-cons-threshold gc-cons-threshold)
+(defvar normal-gc-cons-threshold 100000000)
 
 (setq gc-cons-threshold most-positive-fixnum)
 
 (add-hook 'emacs-startup-hook
-	  (lambda ()
-	    (setq gc-cons-threshold normal-gc-cons-threshold)))
+	      (lambda ()
+	        (setq gc-cons-threshold normal-gc-cons-threshold)))
+
+(setq read-process-output-max (* 1024 1024))
 
 (setq package-enable-at-startup nil)
 
