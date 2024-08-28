@@ -423,6 +423,9 @@
     (typescript-ts-mode . lsp-deferred)
     :commands (lsp lsp-deferred))
 
+  (use-package lsp-ui
+    :commands lsp-ui-mode)
+
   (use-package lsp-tailwindcss
     :init
     (setq lsp-tailwindcss-add-on-mode t)
@@ -546,7 +549,8 @@
           (elixir . ("https://github.com/elixir-lang/tree-sitter-elixir"))
           (heex . ("https://github.com/phoenixframework/tree-sitter-heex"))
           (java . ("https://github.com/tree-sitter/tree-sitter-java"))
-          (qmljs . ("https://github.com/yuja/tree-sitter-qmljs"))))
+          (qmljs . ("https://github.com/yuja/tree-sitter-qmljs"))
+          (swift . ("~/.config/emacs/tree-sitter/tree-sitter-swift"))))
 
   (setq treesit-font-lock-level 4)
 #+end_src
@@ -639,4 +643,8 @@
   (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
   (add-to-list 'auto-mode-alist '("\\.mpp\\'" . c++-ts-mode))
   (add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-ts-mode))
+#+end_src
+* Swift
+#+begin_src emacs-lisp
+  (use-package swift-ts-mode)
 #+end_src
