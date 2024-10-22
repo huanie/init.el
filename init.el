@@ -55,8 +55,6 @@
 
 (setq use-package-always-ensure t)
 
-(use-package gnu-elpa-keyring-update)
-
 (defvar tangled-file (locate-user-emacs-file "init-tangled.el"))
 
 (defun huan-tangle-config ()
