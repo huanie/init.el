@@ -540,6 +540,7 @@
   (use-package rust-mode)
   (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
 #+end_src
+
 ** Tree-Sitter
 #+begin_src emacs-lisp
   (setq treesit-language-source-alist
@@ -599,11 +600,12 @@
     (js-json-mode . apheleia-mode)
     (rust-ts-mode . apheleia-mode)
     (c++-ts-mode . apheleia-mode)
-    (swift-ts-mode . apheleia-mode)
     :config
     (add-to-list 'apheleia-formatters '(swift-format "swift-format"))
     (add-to-list 'apheleia-mode-alist '(swift-ts-mode . swift-format))
-    (add-to-list 'apheleia-mode-alist '(jtsx-jsx-mode . denofmt-js)))
+    (add-to-list 'apheleia-mode-alist '(jtsx-jsx-mode . denofmt-js))
+    (add-to-list 'apheleia-formatters '(racket-format "raco" "fmt" "--width" "80" "--limit" "100"))
+    (add-to-list 'apheleia-mode-alist '(racket-mode . racket-format)))
 
   (use-package jtsx
     :ensure t
@@ -652,7 +654,11 @@
     (add-hook 'jtsx-jsx-mode-hook 'jtsx-bind-keys-to-jtsx-jsx-mode-map)
     (add-hook 'jtsx-tsx-mode-hook 'jtsx-bind-keys-to-jtsx-tsx-mode-map))
 
-  (use-package web-mode)
+  (use-package web-mode
+    :mode (("\\.html?\\'" . web-mode))
+    :config
+    (setq web-mode-engines-alist
+	  '(("jinja" . "\\.html\\'"))))
 #+end_src
 * Sepples
 #+begin_src emacs-lisp
@@ -680,4 +686,18 @@
     (add-hook 'scala-ts-mode-hook
 	      (lambda ()
 		(add-hook 'before-save-hook #'eglot-format-buffer nil t))))
+#+end_src
+* Scheme
+#+begin_src emacs-lisp
+  (use-package geiser)
+  (use-package geiser-guile
+    :after geiser)
+  (use-package racket-mode
+    :hook
+    (racket-mode . racket-xp-mode)
+    (racket-mode . apheleia-mode))
+#+end_src
+* Standard ML
+#+begin_src emacs-lisp
+  (use-package sml-mode)
 #+end_src
