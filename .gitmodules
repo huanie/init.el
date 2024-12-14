@@ -3,4 +3,4 @@
 	url = https://github.com/huanie/blueprint-ts-mode
 [submodule "lisp/typst-ts-mode"]
 	path = lisp/typst-ts-mode
-	url = git@git.sr.ht:~meow_king/typst-ts-mode
+	url = git@codeberg.org:meow_king/typst-ts-mode.git
