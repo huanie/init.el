@@ -23,6 +23,7 @@
 ;;
 
 ;;; Code:
+(setenv "LSP_USE_PLISTS" "true")
 
 (setq use-dialog-box t
       use-file-dialog t
@@ -37,8 +38,8 @@
 (setq gc-cons-threshold most-positive-fixnum)
 
 (add-hook 'emacs-startup-hook
-	      (lambda ()
-	        (setq gc-cons-threshold normal-gc-cons-threshold)))
+          (lambda ()
+            (setq gc-cons-threshold normal-gc-cons-threshold)))
 
 (setq read-process-output-max (* 1024 1024))
 

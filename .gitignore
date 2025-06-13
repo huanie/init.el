@@ -6,3 +6,4 @@
 !lisp/*
 !config.org
 !lsp-bridge
+!config.el
